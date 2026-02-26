@@ -1,10 +1,12 @@
 package main
 
 import (
-	"encoding/base64"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/bootdotdev/learn-file-storage-s3-golang-starter/internal/auth"
@@ -36,18 +38,13 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 	const maxMemory = 10 << 20
 	r.ParseMultipartForm(maxMemory)
 
-	mediaType := r.Header.Get("Content-Type")
-	file, _, err := r.FormFile("thumbnail")
+	file, header, err := r.FormFile("thumbnail")
 	if err != nil {
 		respondWithError(w, http.StatusNotFound, "No file in form", err)
 		return
 	}
+	defer file.Close()
 
-	fileData, err := io.ReadAll(file)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't read file", err)
-		return
-	}
 	videoMetadata, err := cfg.db.GetVideo(videoID)
 	if err != nil {
 		respondWithError(w, http.StatusNotFound, "Video not found", err)
@@ -59,9 +56,27 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	base64 := base64.StdEncoding.EncodeToString(fileData)
-	thumbnailURL := fmt.Sprintf("data:%s;base64,%s", mediaType, base64)
-	videoMetadata.ThumbnailURL = &thumbnailURL
+	mediaType, _, err := mime.ParseMediaType(header.Header.Get("Content-Type"))
+	if (mediaType != "image/png" && mediaType != "image/jpeg") || err != nil {
+		respondWithError(w, http.StatusBadRequest, "Bad file format", err)
+		return
+	}
+
+	assetPath := cfg.getAssetPath(videoID, filepath.Ext(header.Filename))
+	assetFile, err := os.Create(assetPath)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't save file", err)
+		return
+	}
+
+	_, err = io.Copy(assetFile, file)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't save file", err)
+		return
+	}
+
+	assetURL := cfg.getAssetURL(assetPath)
+	videoMetadata.ThumbnailURL = &assetURL
 	videoMetadata.UpdatedAt = time.Now()
 
 	err = cfg.db.UpdateVideo(videoMetadata)
