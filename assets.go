@@ -1,11 +1,11 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"path/filepath"
-
-	"github.com/google/uuid"
 )
 
 func (cfg apiConfig) ensureAssetsDir() error {
@@ -15,8 +15,11 @@ func (cfg apiConfig) ensureAssetsDir() error {
 	return nil
 }
 
-func (cfg apiConfig) getAssetPath(assetID uuid.UUID, ext string) string {
-	return fmt.Sprintf("%s%s", filepath.Join(cfg.assetsRoot, assetID.String()), ext)
+func (cfg apiConfig) getAssetPath(ext string) string {
+	bytes := make([]byte, 32)
+	rand.Read(bytes)
+	randFileName := base64.RawURLEncoding.EncodeToString(bytes)
+	return fmt.Sprintf("%s%s", filepath.Join(cfg.assetsRoot, randFileName), ext)
 }
 
 func (cfg apiConfig) getAssetURL(path string) string {

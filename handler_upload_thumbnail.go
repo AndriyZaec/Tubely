@@ -62,7 +62,7 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	assetPath := cfg.getAssetPath(videoID, filepath.Ext(header.Filename))
+	assetPath := cfg.getAssetPath(filepath.Ext(header.Filename))
 	assetFile, err := os.Create(assetPath)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't save file", err)
