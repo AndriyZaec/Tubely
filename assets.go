@@ -15,13 +15,20 @@ func (cfg apiConfig) ensureAssetsDir() error {
 	return nil
 }
 
-func (cfg apiConfig) getAssetPath(ext string) string {
+func generateAssetName() string {
 	bytes := make([]byte, 32)
 	rand.Read(bytes)
-	randFileName := base64.RawURLEncoding.EncodeToString(bytes)
-	return fmt.Sprintf("%s%s", filepath.Join(cfg.assetsRoot, randFileName), ext)
+	return base64.RawURLEncoding.EncodeToString(bytes)
+}
+
+func (cfg apiConfig) getAssetPath(ext string) string {
+	return fmt.Sprintf("%s%s", filepath.Join(cfg.assetsRoot, generateAssetName()), ext)
 }
 
 func (cfg apiConfig) getAssetURL(path string) string {
 	return fmt.Sprintf("http://localhost:%s/%s", cfg.port, path)
+}
+
+func (cfg apiConfig) getS3URL(key string) string {
+	return fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", cfg.s3Bucket, cfg.s3Region, key)
 }
