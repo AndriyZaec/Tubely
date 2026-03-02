@@ -89,12 +89,26 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		fmt.Println("error getting ratio:", err)
 	}
 
+	processedFileName, err := processVideoFromStart(tempFile.Name())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Seek start failure", err)
+		return
+	}
+	defer os.Remove(processedFileName)
+
+	processedFile, err := os.Open(processedFileName)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Processing file failure", err)
+		return
+	}
+	defer processedFile.Close()
+
 	generatedAssetName := fmt.Sprintf("%s/%s.%s", ratio, generateAssetName(), strings.Split(mediaType, "/")[1])
 
 	_, err = cfg.s3Client.PutObject(r.Context(), &s3.PutObjectInput{
 		Bucket:      &cfg.s3Bucket,
 		Key:         &generatedAssetName,
-		Body:        tempFile,
+		Body:        processedFile,
 		ContentType: &mediaType,
 	})
 	if err != nil {
