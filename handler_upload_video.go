@@ -6,6 +6,7 @@ import (
 	"mime"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -83,7 +84,12 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	generatedAssetName := generateAssetName()
+	ratio, err := getVideoAspectRatio(tempFile.Name())
+	if err != nil {
+		fmt.Println("error getting ratio:", err)
+	}
+
+	generatedAssetName := fmt.Sprintf("%s/%s.%s", ratio, generateAssetName(), strings.Split(mediaType, "/")[1])
 
 	_, err = cfg.s3Client.PutObject(r.Context(), &s3.PutObjectInput{
 		Bucket:      &cfg.s3Bucket,
