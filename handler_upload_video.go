@@ -148,6 +148,10 @@ func generatePresignedURL(s3Client *s3.Client, bucket, key string, expireTime ti
 }
 
 func (cfg *apiConfig) dbVideoToSignedVideo(video database.Video) (database.Video, error) {
+	if video.VideoURL == nil || *video.VideoURL == "" {
+		fmt.Println("no video url yet")
+		return video, nil
+	}
 	videoURLData := strings.Split(*video.VideoURL, ",")
 	if len(videoURLData) < 2 {
 		return video, fmt.Errorf("video data corrupted")
