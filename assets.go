@@ -33,7 +33,7 @@ func (cfg apiConfig) getAssetURL(path string) string {
 }
 
 func (cfg apiConfig) getS3URL(key string) string {
-	return fmt.Sprintf("%s,%s", cfg.s3Bucket, key)
+	return fmt.Sprintf("%s/%s", cfg.s3CfDistribution, key)
 }
 
 func getVideoAspectRatio(filepath string) (string, error) {
